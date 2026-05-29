@@ -1,0 +1,447 @@
+# Product Requirements Document (PRD)
+
+## Multi-Tenant Signup and Authentication System
+
+**Product:** Feedple AI
+**Version:** 1.0
+**Date:** May 20, 2026
+**Author:** OpenAI
+
+---
+
+# 1. Executive Summary
+
+This document defines the product requirements for the signup and authentication system for Feedple AI.
+
+Feedple AI is a multi-tenant B2B SaaS platform. Each company (tenant) has its own isolated workspace, users, database connections, campaigns, and analytics.
+
+The signup flow must create:
+
+1. A **User** (the human identity)
+2. A **Tenant** (the company workspace)
+3. A **Tenant Membership** linking the user to the tenant as `OWNER`
+
+This architecture establishes a scalable foundation for team collaboration, role-based permissions, billing, and strict data isolation.
+
+---
+
+# 2. Problem Statement
+
+Most early SaaS products treat the person signing up as the entire account. This works for single-user products but fails when:
+
+* Multiple employees need access
+* Billing is company-based
+* Permissions vary by role
+* Data must be isolated by organization
+
+Feedple AI serves businesses, not individuals.
+
+Therefore, the system must distinguish between:
+
+* **User:** Individual person who logs in
+* **Tenant:** Company workspace that owns data
+
+---
+
+# 3. Goals
+
+## Primary Goals
+
+* Allow a business owner to create an account in under 2 minutes.
+* Automatically provision a company workspace.
+* Verify email ownership.
+* Securely authenticate users.
+* Support future invitation of team members.
+
+## Success Criteria
+
+* Signup completion rate > 70%
+* Email verification success > 90%
+* Time to dashboard < 3 minutes
+* Zero cross-tenant data exposure
+
+---
+
+# 4. Core Concepts
+
+## User
+
+Represents a human identity.
+
+Fields:
+
+* full_name
+* email
+* password_hash
+* is_email_verified
+* last_login
+
+## Tenant
+
+Represents a company workspace.
+
+Fields:
+
+* name
+* slug
+* plan
+* status
+* created_at
+
+## TenantMembership
+
+Links users to tenants.
+
+Fields:
+
+* user_id
+* tenant_id
+* role
+* joined_at
+
+---
+
+# 5. User Roles
+
+| Role     | Description                             |
+| -------- | --------------------------------------- |
+| OWNER    | Full control, billing, delete workspace |
+| ADMIN    | Manage settings and campaigns           |
+| OPERATOR | Review and approve messages             |
+| ANALYST  | View dashboards and reports             |
+| VIEWER   | Read-only access                        |
+
+---
+
+# 6. Signup Flow Overview
+
+```text
+Visitor
+  → Enter account details
+  → Enter company details
+  → Verify email
+  → Account created
+  → Tenant created
+  → Membership created (OWNER)
+  → Redirect to onboarding
+```
+
+---
+
+# 7. Signup Fields
+
+## Step 1: Account Details
+
+| Field            | Required | Validation           |
+| ---------------- | -------- | -------------------- |
+| Full Name        | Yes      | 2-100 characters     |
+| Work Email       | Yes      | Unique, valid email  |
+| Password         | Yes      | Minimum 8 characters |
+| Confirm Password | Yes      | Must match           |
+
+## Step 2: Company Details
+
+| Field           | Required | Validation       |
+| --------------- | -------- | ---------------- |
+| Company Name    | Yes      | 2-150 characters |
+| Company Website | No       | Valid URL        |
+| Company Size    | No       | Enum             |
+| Industry        | No       | Enum             |
+
+## Step 3: Email Verification
+
+| Field                         | Required |
+| ----------------------------- | -------- |
+| OTP Code or Verification Link | Yes      |
+
+---
+
+# 8. Functional Requirements
+
+## FR-1: Create User Account
+
+The system shall create a unique user record using email and password.
+
+## FR-2: Password Hashing
+
+The system shall hash passwords using Argon2.
+
+## FR-3: Email Verification
+
+The system shall require email verification before granting full access.
+
+## FR-4: Create Tenant
+
+The system shall create a tenant using the company name.
+
+## FR-5: Generate Tenant Slug
+
+The system shall generate a unique slug from the company name.
+
+Example:
+
+* Feedple AI → `feedple-ai`
+
+## FR-6: Create Tenant Membership
+
+The system shall create a membership linking the user to the tenant with role `OWNER`.
+
+## FR-7: JWT Authentication
+
+The system shall issue:
+
+* Access Token (15 minutes)
+* Refresh Token (30 days)
+
+## FR-8: Automatic Login
+
+After successful verification, the user shall be logged in automatically.
+
+---
+
+# 9. Non-Functional Requirements
+
+## Security
+
+* HTTPS only
+* Argon2 password hashing
+* Rate limiting
+* CSRF protection
+* Secure HTTP-only cookies
+* Audit logs
+
+## Performance
+
+* Signup response < 2 seconds
+* Email delivery < 30 seconds
+
+## Reliability
+
+* Atomic database transaction for user + tenant + membership creation
+
+---
+
+# 10. Database Schema
+
+## User
+
+| Field             | Type            |
+| ----------------- | --------------- |
+| id                | UUID            |
+| full_name         | String          |
+| email             | String (unique) |
+| password_hash     | String          |
+| is_email_verified | Boolean         |
+| created_at        | Timestamp       |
+
+## Tenant
+
+| Field      | Type            |
+| ---------- | --------------- |
+| id         | UUID            |
+| name       | String          |
+| slug       | String (unique) |
+| plan       | Enum            |
+| status     | Enum            |
+| created_at | Timestamp       |
+
+## TenantMembership
+
+| Field     | Type      |
+| --------- | --------- |
+| id        | UUID      |
+| user_id   | FK        |
+| tenant_id | FK        |
+| role      | Enum      |
+| joined_at | Timestamp |
+
+---
+
+# 11. API Specification
+
+## POST /api/auth/signup/
+
+### Request
+
+```json
+{
+  "full_name": "Umar Bello Kanwa",
+  "email": "umar@feedple.com",
+  "password": "StrongPassword123",
+  "company_name": "Feedple AI",
+  "company_website": "https://feedple.com"
+}
+```
+
+### Response
+
+```json
+{
+  "message": "Verification email sent."
+}
+```
+
+---
+
+## POST /api/auth/verify-email/
+
+### Request
+
+```json
+{
+  "token": "verification-token"
+}
+```
+
+### Response
+
+```json
+{
+  "access": "jwt-access-token",
+  "refresh": "jwt-refresh-token",
+  "user": {
+    "id": "...",
+    "full_name": "Umar Bello Kanwa",
+    "email": "umar@feedple.com"
+  },
+  "tenant": {
+    "id": "...",
+    "name": "Feedple AI",
+    "role": "OWNER"
+  }
+}
+```
+
+---
+
+# 12. Signup Sequence Diagram
+
+```text
+User submits signup form
+    ↓
+Validate fields
+    ↓
+Create unverified user
+    ↓
+Create tenant
+    ↓
+Create membership (OWNER)
+    ↓
+Generate verification token
+    ↓
+Send verification email
+    ↓
+User verifies email
+    ↓
+Issue JWT tokens
+    ↓
+Redirect to onboarding
+```
+
+---
+
+# 13. Error Handling
+
+| Scenario                   | Message                                         |
+| -------------------------- | ----------------------------------------------- |
+| Email already exists       | "An account with this email already exists."    |
+| Weak password              | "Password does not meet security requirements." |
+| Company name missing       | "Company name is required."                     |
+| Invalid verification token | "Verification link is invalid or expired."      |
+
+---
+
+# 14. Authorization Rules
+
+Every authenticated request must include the active tenant context.
+
+All queries must be scoped by `tenant_id`.
+
+Example:
+
+```python
+Campaign.objects.filter(tenant=current_tenant)
+```
+
+---
+
+# 15. Audit Logging
+
+Track:
+
+* User signup
+* Email verification
+* Login
+* Logout
+* Password reset
+* Role changes
+
+---
+
+# 16. Post-Signup Onboarding
+
+After account creation, the user is redirected to onboarding.
+
+Steps:
+
+1. Welcome screen
+2. Connect database
+3. Map tables
+4. Configure inactivity rules
+5. Send test campaign
+
+---
+
+# 17. Out of Scope (Future Enhancements)
+
+* Social login (Google, Microsoft)
+* SAML SSO
+* MFA
+* Multiple workspaces per signup
+* Domain-based auto-join
+
+---
+
+# 18. Technical Recommendations
+
+## Backend
+
+* Django
+* Django REST Framework
+* Simple JWT
+* PostgreSQL
+
+## Frontend
+
+* Next.js
+* Redux Toolkit
+* Secure cookie token storage
+
+## Email
+
+* SendGrid
+
+---
+
+# 19. Acceptance Criteria
+
+A signup is considered successful when:
+
+* User record exists
+* Tenant record exists
+* Membership record exists
+* Role = OWNER
+* Verification email sent
+* User can verify email
+* JWT tokens issued
+* User reaches onboarding
+
+---
+
+# 20. Key Design Principle
+
+> A person signing up is a User.
+> Signup also creates a Tenant.
+> The User becomes the OWNER of that Tenant.
+
+This model is the correct architectural foundation for any serious B2B SaaS platform.
