@@ -9,5 +9,13 @@ export default defineConfig({
       include: "**/*.svg",
     }),
   ],
+  server: {
+    proxy: {
+      '/api/py/api/v1': {
+        target: 'https://feedple-ai.onrender.com',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
+    },
+  },
 })
-

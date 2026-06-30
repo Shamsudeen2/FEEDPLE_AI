@@ -6,7 +6,11 @@ import Input from "../form/input/InputField";
 import Checkbox from "../form/input/Checkbox";
 import Button from "../ui/button/Button";
 import AuthLayout from "./AuthPageLayout";
-import { signInWithPassword, sendOtp, verifyOtp } from "../services/mockApi";
+import {
+  signInWithApi,
+  sendOtpWithApi,
+  verifyOtpWithApi,
+} from "../services/api";
 import { useAuth } from "../context/useAuth";
 
 export default function SignInForm() {
@@ -42,11 +46,11 @@ export default function SignInForm() {
 
     setIsLoading(true);
     try {
-      const res = await signInWithPassword(email, password);
+      const res = await signInWithApi(email, password);
       if (res.success && res.data) {
-        setSuccess("Signed in — redirecting...");
+        setSuccess("Signed in successfully — redirecting...");
         login(res.data.user, res.data.token);
-        setTimeout(() => navigate("/dashboard"), 800);
+        setTimeout(() => navigate("/dashboard"), 300);
       } else {
         setError(res.message || "Sign in failed");
       }
@@ -71,10 +75,10 @@ export default function SignInForm() {
 
     setIsLoading(true);
     try {
-      const res = await sendOtp(email);
+      const res = await sendOtpWithApi(email);
       if (res.success) {
         setOtpSent(true);
-        setSuccess("OTP sent — check console for test code");
+        setSuccess("OTP sent — check your email");
       } else {
         setError(res.message || "Failed to send OTP");
       }
@@ -99,11 +103,11 @@ export default function SignInForm() {
 
     setIsLoading(true);
     try {
-      const res = await verifyOtp(email, otp);
+      const res = await verifyOtpWithApi(email, otp);
       if (res.success && res.data) {
-        setSuccess("OTP verified — redirecting...");
+        setSuccess("OTP verified successfully — redirecting...");
         login(res.data.user, res.data.token);
-        setTimeout(() => navigate("/dashboard"), 800);
+        setTimeout(() => navigate("/dashboard"), 300);
       } else {
         setError(res.message || "OTP verification failed");
       }
@@ -131,13 +135,13 @@ export default function SignInForm() {
               </p>
 
               {error && (
-                <div className="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-700">
+                <div className="mt-3 rounded-md p-3 text-sm text-error-600 bg-error-50 dark:bg-error-500/10 dark:text-error-400">
                   {error}
                 </div>
               )}
 
               {success && (
-                <div className="mt-3 rounded-md bg-green-50 p-3 text-sm text-green-700">
+                <div className="mt-3 rounded-md p-3 text-sm text-success-600 bg-success-50 dark:bg-success-500/10 dark:text-success-400">
                   {success}
                 </div>
               )}

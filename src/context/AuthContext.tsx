@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
 import { useState, useEffect, useCallback } from "react";
-import type { MockUser } from "../services/mockApi";
-import { getCurrentUser, logout as apiLogout } from "../services/mockApi";
+import { getCurrentUserWithApi, logoutWithApi } from "../services/api";
 import { AuthContext } from "./auth-context";
+
+interface User {
+  [key: string]: unknown;
+}
 
 const STORAGE_KEYS = {
   TOKEN: "feedple_auth_token",
@@ -10,7 +13,7 @@ const STORAGE_KEYS = {
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<Omit<MockUser, "password"> | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -22,7 +25,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (storedToken && storedUser) {
         // Verify token is still valid
-        const result = await getCurrentUser(storedToken);
+        const result = await getCurrentUserWithApi(storedToken);
         if (result.success && result.user) {
           setToken(storedToken);
           setUser(result.user);
@@ -49,19 +52,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadSession();
   }, [restoreSession]);
 
-  const login = useCallback(
-    (newUser: Omit<MockUser, "password">, newToken: string) => {
-      setUser(newUser);
-      setToken(newToken);
-      localStorage.setItem(STORAGE_KEYS.TOKEN, newToken);
-      localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
-    },
-    [],
-  );
+  const login = useCallback((newUser: User, newToken: string) => {
+    setUser(newUser);
+    setToken(newToken);
+    localStorage.setItem(STORAGE_KEYS.TOKEN, newToken);
+    localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+  }, []);
 
   const logout = useCallback(async () => {
     try {
-      await apiLogout();
+      await logoutWithApi();
     } catch (error) {
       console.error("Logout error:", error);
     } finally {

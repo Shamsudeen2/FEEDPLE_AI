@@ -1,12 +1,11 @@
 import { createContext } from "react";
-import type { MockUser } from "../services/mockApi";
 
 export interface AuthContextType {
-  user: Omit<MockUser, "password"> | null;
+  user: Record<string, unknown> | null;
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (user: Omit<MockUser, "password">, token: string) => void;
+  login: (user: Record<string, unknown>, token: string) => void;
   logout: () => Promise<void>;
   restoreSession: () => Promise<void>;
 }
