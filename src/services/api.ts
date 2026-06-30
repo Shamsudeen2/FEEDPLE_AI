@@ -29,7 +29,7 @@ apiClient.interceptors.request.use(
 );
 
 // Helper to refresh token using the backend endpoint
-const refreshTokenWithApi = async (currentToken?: string): Promise<string | null> => {
+const refreshTokenWithApi = async (currentToken?: string | null): Promise<string | null> => {
   try {
     const tokenToUse = currentToken || localStorage.getItem('feedple_auth_token');
     if (!tokenToUse) return null;
@@ -60,7 +60,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest?._retry) {
       originalRequest._retry = true;
       const currentToken = localStorage.getItem('feedple_auth_token');
-      const newToken = await refreshTokenWithApi(currentToken);
+      const newToken = await refreshTokenWithApi(currentToken ?? null);
       if (newToken) {
         // retry original request with new token
         originalRequest.headers = originalRequest.headers || {};
@@ -218,7 +218,10 @@ export const signUpVerifyOtpWithApi = async (
         validationErrors = errorDetail.errors.reduce(
           (acc: Record<string, string>, item) => {
             if (item?.field && item?.message) {
-              acc[mapBackendField(item.field)] = item.message;
+              const fieldName = mapBackendField(item.field);
+              if (fieldName) {
+                acc[fieldName] = item.message;
+              }
             }
             return acc;
           },
@@ -284,7 +287,10 @@ export const signUpWithApi = async (
         validationErrors = errorDetail.errors.reduce(
           (acc: Record<string, string>, item) => {
             if (item?.field && item?.message) {
-              acc[mapBackendField(item.field)] = item.message;
+              const fieldName = mapBackendField(item.field);
+              if (fieldName) {
+                acc[fieldName] = item.message;
+              }
             }
             return acc;
           },
@@ -381,8 +387,9 @@ export const verifyOtpWithApi = async (
   otp: string
 ): Promise<VerifyOtpResponse> => {
   try {
-    console.log('[API] POST /auth/login/verify-otp', { otp_code: otp });
+    console.log('[API] POST /auth/login/verify-otp', { email, otp_code: otp });
     const response = await apiClient.post('/auth/login/verify-otp', {
+      email,
       otp_code: otp,
     });
 
