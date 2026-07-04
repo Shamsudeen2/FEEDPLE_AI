@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { EnvelopeIcon } from "../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
@@ -16,7 +15,6 @@ export default function VerifyEmailForm() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -77,7 +75,7 @@ export default function VerifyEmailForm() {
       const resp = await signUpVerifyOtpWithApi(payload);
 
       if (resp.success) {
-        setSuccess(resp.message || "Email verified. Redirecting...");
+        setSuccess(resp.message || "Email verified successfully.");
         // Clear pending data
         try {
           localStorage.removeItem("pendingSignUp");
@@ -87,9 +85,7 @@ export default function VerifyEmailForm() {
 
         if (resp.data?.token) {
           login(resp.data.user, resp.data.token);
-          setTimeout(() => navigate("/dashboard"), 800);
-        } else {
-          setTimeout(() => navigate("/signin"), 800);
+          // Stay on this page so errors and status can be observed.
         }
       } else {
         setError(resp.message || "Verification failed");
