@@ -10,6 +10,7 @@ const API_BASE_URL = import.meta.env.DEV ? '/api/py/api/v1' : 'https://feedple-a
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 60000,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
